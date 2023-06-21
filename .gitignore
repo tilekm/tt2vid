@@ -1,0 +1,5 @@
+*.session
+*.session-journal
+venv
+.idea
+out.mp4
