@@ -11,7 +11,6 @@ import time
 from time import sleep
 import random
 did = str(random.randint(10000, 999999999))
-api = TikTokApi(custom_device_id=did)
 app = Client("my_account", api_id=21157952, api_hash='c0bd5296069e9160fbbada61734d4afa')
 
 
