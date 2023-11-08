@@ -1,28 +1,30 @@
-import os
-import asyncio
 from pyrogram import Client, filters
-import random
-from TikTokApi import TikTokApi
 from pyrogram.errors import FloodWait
-
-from pyrogram.types import ChatPermissions
-
-import time
 from time import sleep
-import random
-did = str(random.randint(10000, 999999999))
-app = Client("my_account", api_id=21157952, api_hash='c0bd5296069e9160fbbada61734d4afa')
+import requests
+import urllib.request
+from bs4 import BeautifulSoup
+from functools import lru_cache
+import os
+
+
+app = Client("my_account")
+headers = {
+    'Accept-language': 'en',
+    'User-Agent': 'Mozilla/5.0 (iPad; U; CPU OS 3_2 like Mac OS X; en-us) AppleWebKit/531.21.10 (KHTML, like Gecko) '
+                  'Version/4.0.4 Mobile/7B334b Safari/531.21.102011-10-16 20:23:10'
+}
 
 
 # Команда type
 @app.on_message(filters.command("type", prefixes=".") & filters.me)
-def type(_, msg):
+def typing(_, msg):
     orig_text = msg.text.split(".type ", maxsplit=1)[1]
     text = orig_text
     tbp = ""  # to be printed
     typing_symbol = "▒"
 
-    while (tbp != orig_text):
+    while tbp != orig_text:
         try:
             msg.edit(tbp + typing_symbol)
             sleep(0.05)  # 50 ms
@@ -34,26 +36,37 @@ def type(_, msg):
             sleep(0.02)
 
         except FloodWait as e:
-            sleep(e.x)
+            sleep(e)
 
 
-@app.on_message(filters.me & (filters.chat("mengoyamen") | filters.group))
-async def message(client, message):
-    if (not message.photo) and ("tiktok.com" in message.text):
-        link = message.text
-        print("tiktok found!!")
-        with TikTokApi(custom_device_id=did) as api:
-            video = api.video(url=link)
-            if video.info_full()['itemInfo']['itemStruct']['video']['duration']:
-                await app.delete_messages(message.chat.id, message.id)
-                video_data = video.bytes()
-                with open("out.mp4", "wb") as out_file:
-                    out_file.write(video_data)
-                print("download completed!!")
-                await app.send_video(message.chat.id, "out.mp4")
-                os.remove('out.mp4')
-            else:
-                print('Image Found!!')
+@lru_cache
+def download_video(url):
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    link = soup.find('link', {'rel': 'canonical'}).attrs['href']
+    video_id = link.split('/')[-1:][0]
+    request_url = f'https://api.tiktokv.com/aweme/v1/feed/?aweme_id={video_id}'
+    response = requests.get(request_url, headers=headers)
+    try:
+        video_link = response.json()['aweme_list'][0]['video']['play_addr']['url_list'][2]
+        urllib.request.urlretrieve(video_link, 'out.mp4')
+        return 'out.mp4'
+    except IndexError:
+        return False
 
 
+@app.on_message(filters.me & (filters.private | filters.group))
+async def tt2vid(_, message):
+    tt_link = message.text
+    if tt_link and ("tiktok.com" in tt_link):
+        file_path = download_video(tt_link)
+        if file_path:
+            await app.delete_messages(message.chat.id, message.id)
+            await app.send_video(message.chat.id, file_path)
+            print('Video Sent!!')
+        else:
+            print('Image Found!!')
+
+
+print('App is Started!!!')
 app.run()
