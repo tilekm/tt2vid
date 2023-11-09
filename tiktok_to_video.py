@@ -5,7 +5,6 @@ import requests
 import urllib.request
 from bs4 import BeautifulSoup
 from functools import lru_cache
-import os
 
 
 app = Client("my_account")
@@ -39,7 +38,7 @@ def typing(_, msg):
             sleep(e)
 
 
-@lru_cache
+@lru_cache(maxsize=7)
 def download_video(url):
     response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.text, 'html.parser')

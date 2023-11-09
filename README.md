@@ -1,2 +1,46 @@
-# tt2vid
-When I send tiktok Video link To Marat it will be changed to mp4 video
+# TikTok Downloader Telegram Userbot
+
+This is a simple Telegram userbot that allows you to send video's to your friends even if you send them link to TikTok.
+
+## Usage
+
+1. Add the bot to a chat with you
+2. Send a TikTok video link to the chat 
+3. The bot will download the video and send it back as a video file
+
+## How it works
+
+The bot uses the [request](https://github.com/psf/requests) library to scrape the video download link from the TikTok page. It then downloads the video and uploads it to Telegram via [Pyrogram](https://github.com/pyrogram/pyrogram).
+
+## Installation
+
+1. `git clone https://github.com/tilekm/tt2vid`
+2. `cd tt2vid`
+3. `pip install -r requirements.txt` 
+4. Obtain the API key by following Telegram’s instructions and rules at https://core.telegram.org/api/obtaining_api_id.
+5. Create file `config.ini`
+6. Write in `config.ini`:  
+`[pyrogram]`  
+`api_id = YOUR_API_ID`  
+`api_hash = YOUR_API_HASH`  
+7. Run `python bot.py`
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request if you would like to contribute. 
+
+Some ideas for improvements:
+
+- Improve performance
+- Improve cache system
+- Add blacklist and whitelist
+- Rebuild README
+- Improve error handling
+
+## License
+
+I don't have one :(
+
+## Author
+
+Maulitbek Tilek
