@@ -6,7 +6,6 @@ import urllib.request
 from bs4 import BeautifulSoup
 from functools import lru_cache
 
-
 app = Client("my_account")
 headers = {
     'Accept-language': 'en',
@@ -38,7 +37,23 @@ def typing(_, msg):
             sleep(e)
 
 
-@lru_cache(maxsize=7)
+def cache_decorator(f):
+    cache = {}
+
+    def wrapper(*args):
+        if args in cache:
+            print("from cache")
+            return cache[args]
+        print("cache")
+        e = f(*args)
+        cache.clear()
+        cache[args] = e
+        return e
+
+    return wrapper
+
+
+@cache_decorator
 def download_video(url):
     response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -58,10 +73,9 @@ def download_video(url):
 async def tt2vid(_, message):
     tt_link = message.text
     if tt_link and ("tiktok.com" in tt_link):
-        file_path = download_video(tt_link)
-        if file_path:
+        if download_video(tt_link):
             await app.delete_messages(message.chat.id, message.id)
-            await app.send_video(message.chat.id, file_path)
+            await app.send_video(message.chat.id, 'out.mp4')
             print('Video Sent!!')
         else:
             print('Image Found!!')
