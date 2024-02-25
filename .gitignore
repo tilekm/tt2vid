@@ -1,7 +1,4 @@
 *.session
 *.session-journal
-venv
-.idea
 out.mp4
-.gitignore
-config.ini
+.*

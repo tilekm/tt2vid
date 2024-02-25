@@ -1,12 +1,13 @@
+import os
+from dotenv import load_dotenv
 from pyrogram import Client, filters
 from pyrogram.errors import FloodWait
 from time import sleep
 import requests
-import urllib.request
-from bs4 import BeautifulSoup
-from functools import lru_cache
 
-app = Client("my_account")
+load_dotenv()
+app = Client("my_account", api_id=os.getenv('API_ID'), api_hash=os.getenv('API_HASH'))
+
 headers = {
     'Accept-language': 'en',
     'User-Agent': 'Mozilla/5.0 (iPad; U; CPU OS 3_2 like Mac OS X; en-us) AppleWebKit/531.21.10 (KHTML, like Gecko) '
@@ -56,26 +57,25 @@ def cache_decorator(f):
 @cache_decorator
 def download_video(url):
     response = requests.get(url, headers=headers)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    link = soup.find('link', {'rel': 'canonical'}).attrs['href']
-    video_id = link.split('/')[-1:][0]
+    link = response.url.split('/')[5]
+    video_id = link.split('?')[0]
     request_url = f'https://api.tiktokv.com/aweme/v1/feed/?aweme_id={video_id}'
     response = requests.get(request_url, headers=headers)
     try:
         video_link = response.json()['aweme_list'][0]['video']['play_addr']['url_list'][2]
-        urllib.request.urlretrieve(video_link, 'out.mp4')
-        return 'out.mp4'
+        return video_link
     except IndexError:
-        return False
+        return None
 
 
 @app.on_message(filters.me & (filters.private | filters.group))
 async def tt2vid(_, message):
     tt_link = message.text
     if tt_link and ("tiktok.com" in tt_link):
-        if download_video(tt_link):
+        link = download_video(tt_link)
+        if link is not None:
             await app.delete_messages(message.chat.id, message.id)
-            await app.send_video(message.chat.id, 'out.mp4')
+            await app.send_video(message.chat.id, link, disable_notification=True)
             print('Video Sent!!')
         else:
             print('Image Found!!')

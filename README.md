@@ -14,16 +14,15 @@ The bot uses the [request](https://github.com/psf/requests) library to scrape th
 
 ## Installation
 
-1. `git clone https://github.com/tilekm/tt2vid`
+1. `git clone https://github.com/tilekm/tt2vid.git`
 2. `cd tt2vid`
 3. `pip install -r requirements.txt` 
 4. Obtain the API key by following Telegram’s instructions and rules at https://core.telegram.org/api/obtaining_api_id.
-5. Create file `config.ini`
-6. Write in `config.ini`:  
-`[pyrogram]`  
-`api_id = YOUR_API_ID`  
-`api_hash = YOUR_API_HASH`  
-7. Run `python bot.py`
+5. Create file `.env`
+6. Write in `.env` your `API_ID` and `API_HASH` like this:   
+`API_ID=YOUR_API_ID`  
+`API_HASH=YOUR_API_HASH`  
+7. Run `python tiktok_to_video.py`
 
 ## Contributing
 
