@@ -59,7 +59,7 @@ def download_video(url):
     response = requests.get(url, headers=headers)
     link = response.url.split('/')[5]
     video_id = link.split('?')[0]
-    request_url = f'https://api.tiktokv.com/aweme/v1/feed/?aweme_id={video_id}'
+    request_url = f'https://api22-normal-c-useast2a.tiktokv.com/aweme/v1/feed/?aweme_id={video_id}'
     response = requests.get(request_url, headers=headers)
     try:
         video_link = response.json()['aweme_list'][0]['video']['play_addr']['url_list'][2]
