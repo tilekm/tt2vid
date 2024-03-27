@@ -57,15 +57,15 @@ def cache_decorator(f):
 @cache_decorator
 def download_video(url):
     response = requests.get(url, headers=headers)
-    link = response.url.split('/')[5]
-    video_id = link.split('?')[0]
-    request_url = f'https://api.tiktokv.com/aweme/v1/feed/?aweme_id={video_id}'
-    response = requests.get(request_url, headers=headers)
-    try:
-        video_link = response.json()['aweme_list'][0]['video']['play_addr']['url_list'][2]
+    spl = response.url.split('/')
+    if spl[4] == 'video':
+        video_id = spl[5].split('?')[0]
+        request_url = f'https://www.tikwm.com/video/media/play/${video_id}.mp4'
+        response = requests.get(request_url, headers=headers)
+        video_link = response.url
         return video_link
-    except IndexError:
-        return None
+    else:
+        return False
 
 
 @app.on_message(filters.me & (filters.private | filters.group))
@@ -73,7 +73,7 @@ async def tt2vid(_, message):
     tt_link = message.text
     if tt_link and ("tiktok.com" in tt_link):
         link = download_video(tt_link)
-        if link is not None:
+        if link:
             await app.delete_messages(message.chat.id, message.id)
             await app.send_video(message.chat.id, link, disable_notification=True)
             print('Video Sent!!')

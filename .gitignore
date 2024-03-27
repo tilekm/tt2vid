@@ -1,4 +1,5 @@
-*.session
-*.session-journal
-out.mp4
+*.session*
+out*
 .*
+venv/
+test.*
