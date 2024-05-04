@@ -1,10 +1,11 @@
 # TikTok Downloader Telegram Userbot
 
+
 This is a simple Telegram userbot that allows you to send video's to your friends even if you send them link to TikTok.
 
 ## Usage
 
-1. Add the bot to a chat with you
+1. Run bot, and login
 2. Send a TikTok video link to the chat 
 3. The bot will download the video and send it back as a video file
 
@@ -38,7 +39,7 @@ Some ideas for improvements:
 
 ## License
 
-I don't have one :(
+This project is licensed under the MIT License. See the LICENSE file for details.
 
 ## Author
 
