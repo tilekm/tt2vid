@@ -1,4 +1,6 @@
 import os
+from functools import lru_cache
+
 from dotenv import load_dotenv
 from pyrogram import Client, filters
 from pyrogram.errors import FloodWait
@@ -38,23 +40,7 @@ def typing(_, msg):
             sleep(e)
 
 
-def cache_decorator(f):
-    cache = {}
-
-    def wrapper(*args):
-        if args in cache:
-            print("from cache")
-            return cache[args]
-        print("cache")
-        e = f(*args)
-        cache.clear()
-        cache[args] = e
-        return e
-
-    return wrapper
-
-
-@cache_decorator
+@lru_cache(5)
 def download_video(url):
     response = requests.get(url, headers=headers)
     spl = response.url.split('/')
