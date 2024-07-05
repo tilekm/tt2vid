@@ -1,11 +1,11 @@
 import os
 from functools import lru_cache
+from time import sleep
 
+import requests
 from dotenv import load_dotenv
 from pyrogram import Client, filters
 from pyrogram.errors import FloodWait
-from time import sleep
-import requests
 
 load_dotenv()
 app = Client("my_account", api_id=os.getenv('API_ID'), api_hash=os.getenv('API_HASH'))
@@ -15,6 +15,7 @@ headers = {
     'User-Agent': 'Mozilla/5.0 (iPad; U; CPU OS 3_2 like Mac OS X; en-us) AppleWebKit/531.21.10 (KHTML, like Gecko) '
                   'Version/4.0.4 Mobile/7B334b Safari/531.21.102011-10-16 20:23:10'
 }
+api = "https://www.tikwm.com/api/"
 
 
 # Команда type
@@ -42,16 +43,14 @@ def typing(_, msg):
 
 @lru_cache(5)
 def download_video(url):
-    response = requests.get(url, headers=headers)
-    spl = response.url.split('/')
-    if spl[4] == 'video':
-        video_id = spl[5].split('?')[0]
-        request_url = f'https://www.tikwm.com/video/media/play/${video_id}.mp4'
-        response = requests.get(request_url, headers=headers)
-        video_link = response.url
-        return video_link
+    response = requests.get(api, headers=headers, params={'url': url})
+    data = response.json()
+    if data.get('code') == -1:
+        return None
+    if data["data"]["duration"] > 0:
+        return data["data"]["wmplay"]
     else:
-        return False
+        return None
 
 
 @app.on_message(filters.me & (filters.private | filters.group))
