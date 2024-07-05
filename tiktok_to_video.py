@@ -48,7 +48,7 @@ def download_video(url):
     if data.get('code') == -1:
         return None
     if data["data"]["duration"] > 0:
-        return data["data"]["wmplay"]
+        return data["data"]["play"]
     else:
         return None
 
