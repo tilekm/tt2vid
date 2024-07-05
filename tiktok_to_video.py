@@ -6,6 +6,7 @@ import requests
 from dotenv import load_dotenv
 from pyrogram import Client, filters
 from pyrogram.errors import FloodWait
+import moviepy.editor as mp
 
 load_dotenv()
 app = Client("my_account", api_id=os.getenv('API_ID'), api_hash=os.getenv('API_HASH'))
@@ -41,7 +42,7 @@ def typing(_, msg):
             sleep(e)
 
 
-@lru_cache(5)
+@lru_cache(1)
 def download_video(url):
     response = requests.get(api, headers=headers, params={'url': url})
     data = response.json()
@@ -50,7 +51,16 @@ def download_video(url):
     if data["data"]["duration"] > 0:
         return data["data"]["play"]
     else:
-        return None
+        # If it is not working in linux, uncomment the following code
+        # with open("output.mp3", "wb") as f:
+        #     f.write(requests.get(data["data"]["play"]).content)
+        # audio = mp.AudioFileClip("output.mp3")
+        audio = mp.AudioFileClip(data["data"]["play"])
+        images = [mp.ImageClip(img, duration=2) for img in data["data"]["images"]]
+        video = mp.concatenate_videoclips(images, method="compose")
+        video = video.set_audio(audio)
+        video.write_videofile("output.mp4", codec="libx264", fps=24, threads=4, logger=None)
+        return "output.mp4"
 
 
 @app.on_message(filters.me & (filters.private | filters.group))
