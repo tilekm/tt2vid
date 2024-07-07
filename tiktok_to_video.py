@@ -1,12 +1,13 @@
 import os
+import subprocess
 from functools import lru_cache
 from time import sleep
 
 import requests
+from PIL import Image
 from dotenv import load_dotenv
 from pyrogram import Client, filters
 from pyrogram.errors import FloodWait
-import moviepy.editor as mp
 
 load_dotenv()
 app = Client("my_account", api_id=os.getenv('API_ID'), api_hash=os.getenv('API_HASH'))
@@ -42,6 +43,19 @@ def typing(_, msg):
             sleep(e)
 
 
+def get_max_dimensions(images):
+    max_width = 0
+    max_height = 0
+    for img in range(images):
+        with Image.open("images/image" + str(img) + ".jpg") as i:
+            width, height = i.size
+        if width > max_width:
+            max_width = width
+        if height > max_height:
+            max_height = height
+    return max_width, max_height
+
+
 @lru_cache(1)
 def download_video(url):
     response = requests.get(api, headers=headers, params={'url': url})
@@ -51,17 +65,62 @@ def download_video(url):
     if data["data"]["duration"] > 0:
         return data["data"]["play"]
     else:
-        # If it is not working in linux, uncomment the following code
-        # with open("output.mp3", "wb") as f:
-        #     f.write(requests.get(data["data"]["play"]).content)
-        # audio = mp.AudioFileClip("output.mp3")
-        audio = mp.AudioFileClip(data["data"]["play"])
-        images = [mp.ImageClip(img, duration=2) for img in data["data"]["images"]]
-        video = mp.concatenate_videoclips(images, method="compose")
-        video = video.set_audio(audio)
-        video.write_videofile("output.mp4", codec="libx264", fps=24, threads=4, logger=None)
-        return "output.mp4"
+        images = data["data"]["images"]
+        length = len(images)
+        if not os.path.exists("images"):
+            os.mkdir("images")
+        for i in range(length):
+            r = requests.get(images[i])
+            with open(f"images/image{i}.jpg", "wb") as f:
+                f.write(r.content)
+        with open("output.mp3", "wb") as f:
+            f.write(requests.get(data["data"]["play"]).content)
+        audio_file = "output.mp3"
+        output_file = "output.mp4"
+        image_duration = 3
+        max_width, max_height = get_max_dimensions(length)
 
+        result = ['ffmpeg', '-y', '-threads', '1']
+        filter_complex_parts = []
+        xfade_parts = []
+
+        if length > 1:
+            for i in range(length):
+                result += ['-loop', '1', '-t', str(image_duration), '-framerate', '1', '-i', f'images/image{i}.jpg']
+                filter_complex_parts.append(
+                    f"[{i}:v]fps=24,scale={max_width - 1}:{max_height - 1}:force_original_aspect_ratio=decrease,"
+                    f"pad={max_width}:{max_height}:(ow-iw)/2:(oh-ih)/2,format=yuvj420p[image{i}]"
+                )
+
+            for i in range(len(images) - 1):
+                offset = (i + 1) * (image_duration - 0.5)
+                end_frame = f'[image{i + 1}]'
+                if i == len(images) - 2:
+                    end_frame = ''
+                xfade_parts.append(
+                    f'[image{i}][image{i + 1}]xfade=transition=slideleft:duration={0.5}:offset={offset}'
+                    f'{end_frame}'
+                )
+
+            filter_complex = "; ".join(filter_complex_parts + xfade_parts)
+        else:
+            result += ['-loop', '1', '-t', str(image_duration), '-framerate', '1', '-i', f'images/image0.jpg']
+            filter_complex = "[0:v]fps=24,format=yuvj420p"
+        result += [
+            '-i', audio_file,
+            '-filter_complex', f'{filter_complex}',
+            '-c:v', 'libx264',
+            '-c:a', 'aac',
+            '-pix_fmt', 'yuv420p',
+            '-movflags', 'faststart',
+            '-preset', 'fast',
+            '-crf', '18'
+        ]
+        result += [output_file, '-async', '1']
+
+        subprocess.run(result)
+
+        return output_file
 
 @app.on_message(filters.me & (filters.private | filters.group))
 async def tt2vid(_, message):
@@ -73,7 +132,7 @@ async def tt2vid(_, message):
             await app.send_video(message.chat.id, link, disable_notification=True)
             print('Video Sent!!')
         else:
-            print('Image Found!!')
+            print('Error!!')
 
 
 print('App is Started!!!')

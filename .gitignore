@@ -3,3 +3,4 @@ out*
 .*
 venv/
 test.*
+images/
