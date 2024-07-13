@@ -70,29 +70,28 @@ def download_video(url):
         if not os.path.exists("images"):
             os.mkdir("images")
         for i in range(length):
-            r = requests.get(images[i])
+            r = requests.get(images[i], headers=headers)
             with open(f"images/image{i}.jpg", "wb") as f:
                 f.write(r.content)
         with open("output.mp3", "wb") as f:
-            f.write(requests.get(data["data"]["play"]).content)
+            f.write(requests.get(data["data"]["play"], headers=headers).content)
         audio_file = "output.mp3"
         output_file = "output.mp4"
         image_duration = 3
         max_width, max_height = get_max_dimensions(length)
 
         result = ['ffmpeg', '-y', '-threads', '1']
-        filter_complex_parts = []
+        filter_complex = ""
+        concat_inputs = ""
 
         for i in range(length):
-            result += ['-loop', '1', '-t', str(image_duration), '-framerate', '1', '-i', f'images/image{i}.jpg']
-            filter_complex_parts.append(
-                f"[{i}:v]fps=1,scale={max_width - 1}:{max_height - 1}:force_original_aspect_ratio=decrease,"
-                f"pad={max_width}:{max_height}:(ow-iw)/2:(oh-ih)/2,format=yuvj420p[image{i}]"
-            )
+            result += ['-loop', '1', '-t', str(image_duration), '-i', f'images/image{i}.jpg']
+            filter_complex += (f"[{i}:v]fps=1,scale={max_width - 1}:{max_height - 1}:force_original_aspect_ratio"
+                               f"=decrease,setsar=sar=1/1,pad={max_width}:{max_height}:(ow-iw)/2:(oh-ih)/2,"
+                               f"format=yuvj420p[image{i}];")
+            concat_inputs += f"[image{i}]"
 
-        concat_inputs = "".join(f"[image{i}]" for i in range(length))
-        filter_complex_parts.append(f"{concat_inputs}concat=n={length}:v=1:a=0[outv]")  # Adjust this line
-        filter_complex = ";".join(filter_complex_parts)
+        filter_complex += f"{concat_inputs}concat=n={length}:v=1:a=0[outv]"
         result += [
             '-i', audio_file,
             '-filter_complex', filter_complex,
