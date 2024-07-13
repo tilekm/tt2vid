@@ -82,33 +82,22 @@ def download_video(url):
 
         result = ['ffmpeg', '-y', '-threads', '1']
         filter_complex_parts = []
-        xfade_parts = []
 
-        if length > 1:
-            for i in range(length):
-                result += ['-loop', '1', '-t', str(image_duration), '-framerate', '1', '-i', f'images/image{i}.jpg']
-                filter_complex_parts.append(
-                    f"[{i}:v]fps=24,scale={max_width - 1}:{max_height - 1}:force_original_aspect_ratio=decrease,"
-                    f"pad={max_width}:{max_height}:(ow-iw)/2:(oh-ih)/2,format=yuvj420p[image{i}]"
-                )
+        for i in range(length):
+            result += ['-loop', '1', '-t', str(image_duration), '-framerate', '1', '-i', f'images/image{i}.jpg']
+            filter_complex_parts.append(
+                f"[{i}:v]fps=1,scale={max_width - 1}:{max_height - 1}:force_original_aspect_ratio=decrease,"
+                f"pad={max_width}:{max_height}:(ow-iw)/2:(oh-ih)/2,format=yuvj420p[image{i}]"
+            )
 
-            for i in range(len(images) - 1):
-                offset = (i + 1) * (image_duration - 0.5)
-                end_frame = f'[image{i + 1}]'
-                if i == len(images) - 2:
-                    end_frame = ''
-                xfade_parts.append(
-                    f'[image{i}][image{i + 1}]xfade=transition=slideleft:duration={0.5}:offset={offset}'
-                    f'{end_frame}'
-                )
-
-            filter_complex = "; ".join(filter_complex_parts + xfade_parts)
-        else:
-            result += ['-loop', '1', '-t', str(image_duration), '-framerate', '1', '-i', f'images/image0.jpg']
-            filter_complex = "[0:v]fps=24,format=yuvj420p"
+        concat_inputs = "".join(f"[image{i}]" for i in range(length))
+        filter_complex_parts.append(f"{concat_inputs}concat=n={length}:v=1:a=0[outv]")  # Adjust this line
+        filter_complex = ";".join(filter_complex_parts)
         result += [
             '-i', audio_file,
-            '-filter_complex', f'{filter_complex}',
+            '-filter_complex', filter_complex,
+            '-map', '[outv]',
+            '-map', f'{length}:a',
             '-c:v', 'libx264',
             '-c:a', 'aac',
             '-pix_fmt', 'yuv420p',
@@ -122,13 +111,14 @@ def download_video(url):
 
         return output_file
 
+
 @app.on_message(filters.me & (filters.private | filters.group))
 async def tt2vid(_, message):
     tt_link = message.text
     if tt_link and ("tiktok.com" in tt_link):
+        await app.delete_messages(message.chat.id, message.id)
         link = download_video(tt_link)
         if link:
-            await app.delete_messages(message.chat.id, message.id)
             await app.send_video(message.chat.id, link, disable_notification=True)
             print('Video Sent!!')
         else:
